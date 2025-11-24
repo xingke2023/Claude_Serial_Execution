@@ -2,14 +2,16 @@
 
 # 检查是否提供了任务文件参数
 if [ $# -eq 0 ]; then
-    echo "用法: $0 <任务文件> [初始session_id]"
+    echo "用法: $0 <任务文件> [延时秒数] [初始session_id]"
     echo "任务文件格式: 每行一个任务"
+    echo "延时秒数: 可选，每个任务执行完后等待的秒数，默认5秒"
     echo "初始session_id: 可选，如果提供则从该session继续"
     exit 1
 fi
 
 TASK_FILE="$1"
-CURRENT_SESSION_ID="$2"
+DELAY_SECONDS="${2:-5}"  # 默认延时5秒
+CURRENT_SESSION_ID="$3"  # 可选的session_id
 
 # 检查任务文件是否存在
 if [ ! -f "$TASK_FILE" ]; then
@@ -27,6 +29,7 @@ echo "日志文件: $LOG_FILE"
 if [ -n "$CURRENT_SESSION_ID" ]; then
     echo "初始Session ID: $CURRENT_SESSION_ID"
 fi
+echo "任务间延时: $DELAY_SECONDS 秒"
 echo "-----------------------------------"
 
 # 任务计数器
@@ -144,6 +147,18 @@ while IFS= read -r task || [ -n "$task" ]; do
     fi
     echo "====================================" | tee -a "$LOG_FILE"
     echo "" | tee -a "$LOG_FILE"
+
+    # 延时等待（除了最后一个任务，但为了简化逻辑，每个任务后都延时）
+    if [ $DELAY_SECONDS -gt 0 ]; then
+        echo "⏱️  等待 $DELAY_SECONDS 秒后执行下一个任务..." | tee -a "$LOG_FILE"
+        for ((i=$DELAY_SECONDS; i>0; i--)); do
+            printf "\r倒计时: %d 秒... " $i
+            sleep 1
+        done
+        printf "\r✓ 等待完成，继续执行          \n"
+        echo "" | tee -a "$LOG_FILE"
+    fi
+
 done < "$TASK_FILE"
 
 echo ""
