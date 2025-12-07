@@ -1,0 +1,6 @@
+# IDE and editor directories
+.vscode/
+.claude/
+
+# OS files
+.DS_Store
