@@ -1,62 +1,114 @@
 #!/bin/bash
 
-# 默认使用当前目录的 tasks.txt
-TASK_FILE="tasks.txt"
-DELAY_SECONDS=5
-CURRENT_SESSION_ID=""
+# 显示欢迎信息
+echo "=========================================="
+echo "  Claude 串行任务执行工具 - 交互模式"
+echo "=========================================="
+echo ""
 
-# 解析命令行参数
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
-            echo "用法: $0 [-f|--file <任务文件>] [延时秒数] [初始session_id]"
-            echo ""
-            echo "默认任务文件: tasks.txt (当前目录)"
-            echo "任务文件格式: 以空行分隔的多行文本，每组为一个任务"
-            echo ""
-            echo "参数说明:"
-            echo "  -f, --file     可选，指定任务文件，默认为 tasks.txt"
-            echo "  延时秒数       可选，每个任务执行完后等待的秒数，默认5秒"
-            echo "  初始session_id 可选，如果提供则从该session继续"
-            echo ""
-            echo "示例:"
-            echo "  $0                           # 使用tasks.txt，延时5秒"
-            echo "  $0 3                         # 使用tasks.txt，延时3秒"
-            echo "  $0 0                         # 使用tasks.txt，不延时"
-            echo "  $0 3 sess_xxx                # 使用tasks.txt，延时3秒，从sess_xxx继续"
-            echo "  $0 -f tasks2.txt             # 使用tasks2.txt，延时5秒"
-            echo "  $0 --file tasks2.txt 3       # 使用tasks2.txt，延时3秒"
-            echo "  $0 -f mytasks.txt 0 sess_xxx # 使用mytasks.txt，不延时，从sess_xxx继续"
-            exit 0
-            ;;
-        -f|--file)
-            TASK_FILE="$2"
-            shift 2
-            ;;
-        *)
-            # 第一个数字参数是延时秒数
-            if [[ "$1" =~ ^[0-9]+$ ]] && [ -z "$DELAY_SET" ]; then
-                DELAY_SECONDS="$1"
-                DELAY_SET=1
-                shift
-            # 第二个参数如果以sess_开头，则是session_id
-            elif [[ "$1" =~ ^sess_ ]]; then
-                CURRENT_SESSION_ID="$1"
-                shift
-            else
-                echo "错误: 未知参数 '$1'"
-                echo "使用 -h 或 --help 查看帮助信息"
-                exit 1
-            fi
-            ;;
-    esac
-done
+# 检查是否有命令行参数（用于向后兼容）
+if [[ $# -gt 0 ]]; then
+    # 如果有参数，使用原有的参数解析逻辑
+    TASK_FILE="tasks.txt"
+    DELAY_SECONDS=5
+    CURRENT_SESSION_ID=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                echo "用法: $0 [-f|--file <任务文件>] [延时秒数] [初始session_id]"
+                echo ""
+                echo "默认任务文件: tasks.txt (当前目录)"
+                echo "任务文件格式: 以空行分隔的多行文本，每组为一个任务"
+                echo ""
+                echo "参数说明:"
+                echo "  -f, --file     可选，指定任务文件，默认为 tasks.txt"
+                echo "  延时秒数       可选，每个任务执行完后等待的秒数，默认5秒"
+                echo "  初始session_id 可选，如果提供则从该session继续"
+                echo ""
+                echo "示例:"
+                echo "  $0                           # 交互模式"
+                echo "  $0 3                         # 使用tasks.txt，延时3秒"
+                echo "  $0 0                         # 使用tasks.txt，不延时"
+                echo "  $0 3 sess_xxx                # 使用tasks.txt，延时3秒，从sess_xxx继续"
+                echo "  $0 -f tasks2.txt             # 使用tasks2.txt，延时5秒"
+                echo "  $0 --file tasks2.txt 3       # 使用tasks2.txt，延时3秒"
+                echo "  $0 -f mytasks.txt 0 sess_xxx # 使用mytasks.txt，不延时，从sess_xxx继续"
+                exit 0
+                ;;
+            -f|--file)
+                TASK_FILE="$2"
+                shift 2
+                ;;
+            *)
+                # 第一个数字参数是延时秒数
+                if [[ "$1" =~ ^[0-9]+$ ]] && [ -z "$DELAY_SET" ]; then
+                    DELAY_SECONDS="$1"
+                    DELAY_SET=1
+                    shift
+                # 第二个参数如果以sess_开头，则是session_id
+                elif [[ "$1" =~ ^sess_ ]]; then
+                    CURRENT_SESSION_ID="$1"
+                    shift
+                else
+                    echo "错误: 未知参数 '$1'"
+                    echo "使用 -h 或 --help 查看帮助信息"
+                    exit 1
+                fi
+                ;;
+        esac
+    done
+else
+    # 交互模式：逐个提示用户输入
+
+    # 1. 询问任务文件
+    read -p "请输入任务文件路径 (直接回车使用默认: tasks.txt): " user_input
+    if [ -z "$user_input" ]; then
+        TASK_FILE="tasks.txt"
+    else
+        TASK_FILE="$user_input"
+    fi
+
+    # 2. 询问延时秒数
+    read -p "请输入任务间延时秒数 (直接回车使用默认: 5秒): " user_input
+    if [ -z "$user_input" ]; then
+        DELAY_SECONDS=5
+    else
+        # 验证输入是否为数字
+        if [[ "$user_input" =~ ^[0-9]+$ ]]; then
+            DELAY_SECONDS="$user_input"
+        else
+            echo "警告: 输入的延时秒数无效，使用默认值: 5秒"
+            DELAY_SECONDS=5
+        fi
+    fi
+
+    # 3. 询问 Session ID
+    read -p "请输入初始 Session ID (直接回车跳过，将创建新会话): " user_input
+    if [ -z "$user_input" ]; then
+        CURRENT_SESSION_ID=""
+    else
+        CURRENT_SESSION_ID="$user_input"
+    fi
+fi
+
+echo ""
+echo "=========================================="
+echo "配置确认:"
+echo "  任务文件: $TASK_FILE"
+echo "  延时秒数: $DELAY_SECONDS"
+if [ -n "$CURRENT_SESSION_ID" ]; then
+    echo "  Session ID: $CURRENT_SESSION_ID"
+else
+    echo "  Session ID: (新会话)"
+fi
+echo "=========================================="
+echo ""
 
 # 检查任务文件是否存在
 if [ ! -f "$TASK_FILE" ]; then
     echo "错误: 任务文件 '$TASK_FILE' 不存在"
-    echo "提示: 请创建任务文件或使用 -f 指定其他文件"
-    echo "或使用 -h 查看帮助信息"
+    echo "提示: 请创建任务文件或重新运行脚本"
     exit 1
 fi
 

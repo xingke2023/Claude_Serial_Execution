@@ -1,0 +1,5 @@
+1+1=?|7643ccfa-4270-4e8d-a18e-dc54fbee3655
+检查 run_tasks.sh 文件的权限
+并显示文件的前10行内容|7643ccfa-4270-4e8d-a18e-dc54fbee3655
+今天星期幾
+幾號了|7643ccfa-4270-4e8d-a18e-dc54fbee3655
