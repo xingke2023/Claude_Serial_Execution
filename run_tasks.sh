@@ -2,32 +2,60 @@
 
 # 默认使用当前目录的 tasks.txt
 TASK_FILE="tasks.txt"
-DELAY_SECONDS="${1:-5}"  # 第一个参数：延时秒数，默认5秒
-CURRENT_SESSION_ID="$2"  # 第二个参数：可选的session_id
+DELAY_SECONDS=5
+CURRENT_SESSION_ID=""
 
-# 显示用法
-if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    echo "用法: $0 [延时秒数] [初始session_id]"
-    echo ""
-    echo "默认任务文件: tasks.txt (当前目录)"
-    echo "任务文件格式: 以空行分隔的多行文本，每组为一个任务"
-    echo ""
-    echo "参数说明:"
-    echo "  延时秒数       可选，每个任务执行完后等待的秒数，默认5秒"
-    echo "  初始session_id 可选，如果提供则从该session继续"
-    echo ""
-    echo "示例:"
-    echo "  $0              # 使用tasks.txt，延时5秒"
-    echo "  $0 3            # 使用tasks.txt，延时3秒"
-    echo "  $0 0            # 使用tasks.txt，不延时"
-    echo "  $0 3 sess_xxx   # 使用tasks.txt，延时3秒，从sess_xxx继续"
-    exit 0
-fi
+# 解析命令行参数
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)
+            echo "用法: $0 [-f|--file <任务文件>] [延时秒数] [初始session_id]"
+            echo ""
+            echo "默认任务文件: tasks.txt (当前目录)"
+            echo "任务文件格式: 以空行分隔的多行文本，每组为一个任务"
+            echo ""
+            echo "参数说明:"
+            echo "  -f, --file     可选，指定任务文件，默认为 tasks.txt"
+            echo "  延时秒数       可选，每个任务执行完后等待的秒数，默认5秒"
+            echo "  初始session_id 可选，如果提供则从该session继续"
+            echo ""
+            echo "示例:"
+            echo "  $0                           # 使用tasks.txt，延时5秒"
+            echo "  $0 3                         # 使用tasks.txt，延时3秒"
+            echo "  $0 0                         # 使用tasks.txt，不延时"
+            echo "  $0 3 sess_xxx                # 使用tasks.txt，延时3秒，从sess_xxx继续"
+            echo "  $0 -f tasks2.txt             # 使用tasks2.txt，延时5秒"
+            echo "  $0 --file tasks2.txt 3       # 使用tasks2.txt，延时3秒"
+            echo "  $0 -f mytasks.txt 0 sess_xxx # 使用mytasks.txt，不延时，从sess_xxx继续"
+            exit 0
+            ;;
+        -f|--file)
+            TASK_FILE="$2"
+            shift 2
+            ;;
+        *)
+            # 第一个数字参数是延时秒数
+            if [[ "$1" =~ ^[0-9]+$ ]] && [ -z "$DELAY_SET" ]; then
+                DELAY_SECONDS="$1"
+                DELAY_SET=1
+                shift
+            # 第二个参数如果以sess_开头，则是session_id
+            elif [[ "$1" =~ ^sess_ ]]; then
+                CURRENT_SESSION_ID="$1"
+                shift
+            else
+                echo "错误: 未知参数 '$1'"
+                echo "使用 -h 或 --help 查看帮助信息"
+                exit 1
+            fi
+            ;;
+    esac
+done
 
 # 检查任务文件是否存在
 if [ ! -f "$TASK_FILE" ]; then
     echo "错误: 任务文件 '$TASK_FILE' 不存在"
-    echo "提示: 请在当前目录创建 tasks.txt 文件"
+    echo "提示: 请创建任务文件或使用 -f 指定其他文件"
     echo "或使用 -h 查看帮助信息"
     exit 1
 fi
@@ -37,6 +65,7 @@ OUTPUT_FILE="session_ids_$(date +%Y%m%d_%H%M%S).txt"
 LOG_FILE="task_execution_$(date +%Y%m%d_%H%M%S).log"
 
 echo "开始处理任务..."
+echo "任务文件: $TASK_FILE"
 echo "输出文件: $OUTPUT_FILE"
 echo "日志文件: $LOG_FILE"
 if [ -n "$CURRENT_SESSION_ID" ]; then

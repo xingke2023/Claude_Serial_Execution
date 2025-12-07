@@ -1,0 +1,5 @@
+# 测试任务文件 - tasks2.txt
+
+echo "This is a test from tasks2.txt"
+
+ls -la

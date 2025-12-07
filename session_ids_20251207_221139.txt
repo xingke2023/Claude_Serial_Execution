@@ -1,0 +1,2 @@
+echo "This is a test from tasks2.txt"|5ba3a61b-d00f-49a9-90f5-7b334310b89e
+ls -la|5ba3a61b-d00f-49a9-90f5-7b334310b89e
