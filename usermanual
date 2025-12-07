@@ -1,0 +1,6 @@
+sudo chmod 777 /usr/local/bin/myclaude
+sudo cp ./run_tasks.sh /usr/local/bin/myclaude
+sudo chmod 777 /usr/local/bin/myclaude
+
+myclaude tasks.txt 5 session_id
+默认tasks.txt 5秒 
