@@ -9,7 +9,7 @@ echo ""
 # 检查是否有命令行参数（用于向后兼容）
 if [[ $# -gt 0 ]]; then
     # 如果有参数，使用原有的参数解析逻辑
-    TASK_FILE="tasks.txt"
+    TASK_FILE="md1.md"
     DELAY_SECONDS=5
     CURRENT_SESSION_ID=""
 
@@ -18,19 +18,19 @@ if [[ $# -gt 0 ]]; then
             -h|--help)
                 echo "用法: $0 [-f|--file <任务文件>] [延时秒数] [初始session_id]"
                 echo ""
-                echo "默认任务文件: tasks.txt (当前目录)"
-                echo "任务文件格式: 以空行分隔的多行文本，每组为一个任务"
+                echo "默认任务文件: md1.md (当前目录)"
+                echo "任务文件格式: 以单独一行的===分隔的多行文本，每组为一个任务"
                 echo ""
                 echo "参数说明:"
-                echo "  -f, --file     可选，指定任务文件，默认为 tasks.txt"
+                echo "  -f, --file     可选，指定任务文件，默认为 md1.md"
                 echo "  延时秒数       可选，每个任务执行完后等待的秒数，默认5秒"
                 echo "  初始session_id 可选，如果提供则从该session继续"
                 echo ""
                 echo "示例:"
                 echo "  $0                           # 交互模式"
-                echo "  $0 3                         # 使用tasks.txt，延时3秒"
-                echo "  $0 0                         # 使用tasks.txt，不延时"
-                echo "  $0 3 sess_xxx                # 使用tasks.txt，延时3秒，从sess_xxx继续"
+                echo "  $0 3                         # 使用md1.md，延时3秒"
+                echo "  $0 0                         # 使用md1.md，不延时"
+                echo "  $0 3 sess_xxx                # 使用md1.md，延时3秒，从sess_xxx继续"
                 echo "  $0 -f tasks2.txt             # 使用tasks2.txt，延时5秒"
                 echo "  $0 --file tasks2.txt 3       # 使用tasks2.txt，延时3秒"
                 echo "  $0 -f mytasks.txt 0 sess_xxx # 使用mytasks.txt，不延时，从sess_xxx继续"
@@ -62,9 +62,9 @@ else
     # 交互模式：逐个提示用户输入
 
     # 1. 询问任务文件
-    read -p "请输入任务文件路径 (直接回车使用默认: tasks.txt): " user_input
+    read -p "请输入任务文件路径 (直接回车使用默认: md1.md): " user_input
     if [ -z "$user_input" ]; then
-        TASK_FILE="tasks.txt"
+        TASK_FILE="md1.md"
     else
         TASK_FILE="$user_input"
     fi
@@ -131,12 +131,12 @@ TASK_COUNT=0
 SUCCESS_COUNT=0
 FAIL_COUNT=0
 
-# 读取任务文件并按空行分组处理
+# 读取任务文件并按===分组处理
 CURRENT_TASK=""
 while IFS= read -r line || [ -n "$line" ]; do
-    # 检查是否为空行
-    if [ -z "$line" ] || [[ "$line" =~ ^[[:space:]]*$ ]]; then
-        # 遇到空行，如果当前有累积的任务内容，则执行
+    # 检查是否为分隔符行（单独一行的===）
+    if [[ "$line" =~ ^[[:space:]]*===[[:space:]]*$ ]]; then
+        # 遇到===分隔符，如果当前有累积的任务内容，则执行
         if [ -n "$CURRENT_TASK" ]; then
             # 去除首尾空白
             task=$(echo "$CURRENT_TASK" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
@@ -156,6 +156,10 @@ while IFS= read -r line || [ -n "$line" ]; do
                 if [ -n "$CURRENT_SESSION_ID" ]; then
                     # 使用上一次的session_id继续
                     echo ">>> 使用上一次的 Session ID: $CURRENT_SESSION_ID" | tee -a "$LOG_FILE"
+                    echo ">>> 即将执行的 Prompt:" | tee -a "$LOG_FILE"
+                    echo "---" | tee -a "$LOG_FILE"
+                    echo "$task" | tee -a "$LOG_FILE"
+                    echo "---" | tee -a "$LOG_FILE"
                     echo ">>> 正在执行 claude 命令，请稍候..." | tee -a "$LOG_FILE"
                     echo "" | tee -a "$LOG_FILE"
 
@@ -191,6 +195,10 @@ while IFS= read -r line || [ -n "$line" ]; do
                 else
                     # 第一次执行，不使用--resume参数
                     echo ">>> 首次执行，创建新会话" | tee -a "$LOG_FILE"
+                    echo ">>> 即将执行的 Prompt:" | tee -a "$LOG_FILE"
+                    echo "---" | tee -a "$LOG_FILE"
+                    echo "$task" | tee -a "$LOG_FILE"
+                    echo "---" | tee -a "$LOG_FILE"
                     echo ">>> 正在执行 claude 命令，请稍候..." | tee -a "$LOG_FILE"
                     echo "" | tee -a "$LOG_FILE"
 
@@ -263,7 +271,7 @@ while IFS= read -r line || [ -n "$line" ]; do
             CURRENT_TASK=""
         fi
     else
-        # 非空行，跳过注释行，累积任务内容
+        # 非分隔符行，跳过注释行，累积任务内容（包括空行）
         if ! [[ "$line" =~ ^[[:space:]]*# ]]; then
             if [ -n "$CURRENT_TASK" ]; then
                 CURRENT_TASK="$CURRENT_TASK"$'\n'"$line"
@@ -293,6 +301,10 @@ if [ -n "$CURRENT_TASK" ]; then
         if [ -n "$CURRENT_SESSION_ID" ]; then
             # 使用上一次的session_id继续
             echo ">>> 使用上一次的 Session ID: $CURRENT_SESSION_ID" | tee -a "$LOG_FILE"
+            echo ">>> 即将执行的 Prompt:" | tee -a "$LOG_FILE"
+            echo "---" | tee -a "$LOG_FILE"
+            echo "$task" | tee -a "$LOG_FILE"
+            echo "---" | tee -a "$LOG_FILE"
             echo ">>> 正在执行 claude 命令，请稍候..." | tee -a "$LOG_FILE"
             echo "" | tee -a "$LOG_FILE"
 
@@ -328,6 +340,10 @@ if [ -n "$CURRENT_TASK" ]; then
         else
             # 第一次执行，不使用--resume参数
             echo ">>> 首次执行，创建新会话" | tee -a "$LOG_FILE"
+            echo ">>> 即将执行的 Prompt:" | tee -a "$LOG_FILE"
+            echo "---" | tee -a "$LOG_FILE"
+            echo "$task" | tee -a "$LOG_FILE"
+            echo "---" | tee -a "$LOG_FILE"
             echo ">>> 正在执行 claude 命令，请稍候..." | tee -a "$LOG_FILE"
             echo "" | tee -a "$LOG_FILE"
 

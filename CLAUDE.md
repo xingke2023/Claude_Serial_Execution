@@ -12,7 +12,7 @@ This repository provides a Bash script (`run_tasks.sh`) for executing multiple C
 
 The `run_tasks.sh` script implements a sequential task processor with the following architecture:
 
-1. **Task File Format**: `tasks.txt` contains prompts separated by blank lines. Each group of non-empty lines forms a single task.
+1. **Task File Format**: `tasks.txt` contains prompts separated by `===` on a separate line. Each group of lines between separators forms a single task.
 2. **Session Chaining**: After the first task creates a session, subsequent tasks use `--resume` with the previous session ID, maintaining context across all tasks.
 3. **Output Handling**: Uses `--output-format json` to extract session IDs and results programmatically.
 4. **Error Resilience**: Failed tasks don't break the chain; the script continues with the next task using the last successful session ID.
@@ -26,7 +26,7 @@ The `run_tasks.sh` script implements a sequential task processor with the follow
   - Line 85-145: Core task execution logic with session handling
 
 - `tasks.txt`: Task definition file
-  - Format: multi-line prompts separated by blank lines
+  - Format: multi-line prompts separated by `===` on a separate line
   - Lines starting with `#` are treated as comments
 
 - `auto_push.sh`: Git automation utility for quick commits/pushes
@@ -86,7 +86,8 @@ sudo chmod 777 /usr/local/bin/myclaude
 - Uses `--dangerously-skip-permissions` flag for non-interactive execution
 
 ### Task File Parsing
-- Blank lines separate tasks (line 57)
-- Comment lines starting with `#` are ignored (line 186)
-- Whitespace is trimmed from task content (line 61, 198)
-- Handles files both with and without trailing blank lines (line 196-305)
+- `===` on a separate line separates tasks (line 138)
+- Comment lines starting with `#` are ignored (line 275)
+- Whitespace is trimmed from task content (line 142, 287)
+- Empty lines within tasks are preserved as part of the task content
+- Handles files both with and without trailing separator
